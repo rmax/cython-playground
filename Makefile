@@ -70,6 +70,9 @@ clean-so:
 lint:
 	flake8 src tests
 
+build-inplace: clean
+	python setup.py build_ext --inplace
+
 develop: clean
 	python setup.py develop -v
 

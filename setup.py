@@ -9,6 +9,9 @@ from setuptools.extension import Extension
 from setuptools.command.build_ext import build_ext as _build_ext
 
 
+USE_BLACKLIST = bool(os.environ.get('USE_BLACKLIST'))
+
+
 class build_ext(_build_ext):
 
     def finalize_options(self):
@@ -20,12 +23,33 @@ class build_ext(_build_ext):
         _build_ext.finalize_options(self)
 
 
+def load_blacklist(envvar='BLACKLIST_MODULES', filename='blacklist.txt', _missing=object()):
+    modules = []
+    envval = os.environ.get(envvar, _missing)
+    if envval is _missing:
+        # Read from file.
+        with open(filename) as fp:
+            for line in fp:
+                if line.startswith('#'):
+                    continue
+                modules.append(line.strip())
+    else:
+        # Read from env.
+        modules[:] = envval.split()
+
+    return modules
+
+
 def find_extensions(dir, pattern, **kwargs):
+    blacklist = frozenset(load_blacklist())
     for pkgname in find_packages(dir):
         pkgdir = os.path.join(dir, pkgname.replace('.', '/'))
         for path in glob.glob(os.path.join(pkgdir, pattern)):
-            modname, _ = os.path.splitext(os.path.basename(path))
-            yield Extension('%s.%s' % (pkgname, modname), [path], **kwargs)
+            name, _ = os.path.splitext(os.path.basename(path))
+            modname = '%s.%s' % (pkgname, name)
+            if USE_BLACKLIST and modname in blacklist:
+                continue
+            yield Extension(modname, [path], **kwargs)
 
 
 def find_packages(path):

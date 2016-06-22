@@ -1,0 +1,2 @@
+# This modules do not compile.
+cython_playground.cpdef_fused_defaults
